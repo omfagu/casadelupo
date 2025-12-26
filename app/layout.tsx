@@ -1,12 +1,23 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Playfair_Display, Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
-  title: 'Casa de Lupo',
-  description: 'Casa de Lupo Restoran Menüsü',
+  title: 'Casa Del Lupo | Fine Dining Experience',
+  description: 'Casa Del Lupo - Eşsiz lezzetler, unutulmaz anlar',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -16,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className={inter.className}>{children}</body>
+      <body className={`${playfair.variable} ${inter.variable} font-sans`}>{children}</body>
     </html>
   )
 }

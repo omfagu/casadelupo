@@ -3,13 +3,15 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Package, FolderOpen, LogOut, Menu, X, ExternalLink } from 'lucide-react'
+import { Package, FolderOpen, LogOut, Menu, X, ExternalLink, Settings, Percent } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Ürünler', href: '/admin/dashboard', icon: Package },
   { name: 'Kategoriler', href: '/admin/dashboard/categories', icon: FolderOpen },
+  { name: 'Fiyat Güncelleme', href: '/admin/dashboard/pricing', icon: Percent },
+  { name: 'Ayarlar', href: '/admin/dashboard/settings', icon: Settings },
 ]
 
 export default function AdminSidebar() {
@@ -26,12 +28,12 @@ export default function AdminSidebar() {
 
   const SidebarContent = () => (
     <>
-      <div className="flex items-center gap-2 px-4 py-5 border-b border-gray-200">
-        <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-200">
+        <div className="w-10 h-10 bg-gradient-to-br from-[#8B4513] to-[#5D2E0C] rounded-xl flex items-center justify-center shadow-lg">
           <span className="text-white font-bold text-sm">CL</span>
         </div>
         <div>
-          <h1 className="font-semibold text-gray-900">Casa de Lupo</h1>
+          <h1 className="font-semibold text-gray-900">Casa Del Lupo</h1>
           <p className="text-xs text-gray-500">Yönetim Paneli</p>
         </div>
       </div>
@@ -45,9 +47,9 @@ export default function AdminSidebar() {
               href={item.href}
               onClick={() => setMobileMenuOpen(false)}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
                 isActive
-                  ? 'bg-primary-50 text-primary-700'
+                  ? 'bg-gradient-to-r from-[#8B4513] to-[#5D2E0C] text-white shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
               )}
             >
@@ -60,7 +62,7 @@ export default function AdminSidebar() {
         <Link
           href="/menu"
           target="_blank"
-          className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
         >
           <ExternalLink className="w-5 h-5" />
           Menüyü Görüntüle
@@ -70,7 +72,7 @@ export default function AdminSidebar() {
       <div className="p-2 border-t border-gray-200">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
         >
           <LogOut className="w-5 h-5" />
           Çıkış Yap
@@ -85,10 +87,10 @@ export default function AdminSidebar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#8B4513] to-[#5D2E0C] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">CL</span>
             </div>
-            <span className="font-semibold text-gray-900">Casa de Lupo</span>
+            <span className="font-semibold text-gray-900">Casa Del Lupo</span>
           </div>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
