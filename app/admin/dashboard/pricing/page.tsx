@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Loader2, Percent, Search, CheckCircle, TrendingUp, TrendingDown, Package, FolderOpen } from 'lucide-react'
+import { Loader2, Percent, Search, CheckCircle, TrendingUp, TrendingDown, Package, FolderOpen, Banknote } from 'lucide-react'
 import { formatPrice, cn } from '@/lib/utils'
 import type { Category, Product } from '@/types/database'
 
 type UpdateMode = 'all' | 'category' | 'search'
 type UpdateType = 'increase' | 'decrease'
+type ValueType = 'percentage' | 'fixed'
 
 export default function PricingPage() {
   const router = useRouter()
@@ -21,7 +22,8 @@ export default function PricingPage() {
   // Form state
   const [mode, setMode] = useState<UpdateMode>('all')
   const [updateType, setUpdateType] = useState<UpdateType>('increase')
-  const [percentage, setPercentage] = useState('')
+  const [valueType, setValueType] = useState<ValueType>('percentage')
+  const [value, setValue] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -34,7 +36,7 @@ export default function PricingPage() {
 
   useEffect(() => {
     calculatePreview()
-  }, [mode, updateType, percentage, selectedCategory, searchQuery, products])
+  }, [mode, updateType, valueType, value, selectedCategory, searchQuery, products])
 
   const loadData = async () => {
     const supabase = createClient()
@@ -65,19 +67,31 @@ export default function PricingPage() {
   }
 
   const calculatePreview = () => {
-    const pct = parseFloat(percentage)
-    if (isNaN(pct) || pct <= 0) {
+    const numValue = parseFloat(value)
+    if (isNaN(numValue) || numValue <= 0) {
       setPreview([])
       return
     }
 
     const affected = getAffectedProducts()
-    const multiplier = updateType === 'increase' ? 1 + pct / 100 : 1 - pct / 100
 
-    const newPreview = affected.map(product => ({
-      product,
-      newPrice: Math.round(product.price * multiplier * 100) / 100,
-    }))
+    const newPreview = affected.map(product => {
+      let newPrice: number
+
+      if (valueType === 'percentage') {
+        const multiplier = updateType === 'increase' ? 1 + numValue / 100 : 1 - numValue / 100
+        newPrice = product.price * multiplier
+      } else {
+        newPrice = updateType === 'increase'
+          ? product.price + numValue
+          : product.price - numValue
+      }
+
+      // Ensure price doesn't go below 0
+      newPrice = Math.max(0, Math.round(newPrice * 100) / 100)
+
+      return { product, newPrice }
+    })
 
     setPreview(newPreview)
   }
@@ -90,7 +104,6 @@ export default function PricingPage() {
 
     const supabase = createClient()
 
-    // Update each product
     const updates = preview.map(({ product, newPrice }) =>
       supabase
         .from('products')
@@ -101,7 +114,6 @@ export default function PricingPage() {
     try {
       await Promise.all(updates)
 
-      // Refresh products
       const { data } = await supabase.from('products').select('*').order('name')
       setProducts(data || [])
 
@@ -110,8 +122,7 @@ export default function PricingPage() {
         text: `${preview.length} ürünün fiyatı başarıyla güncellendi!`
       })
 
-      // Reset form
-      setPercentage('')
+      setValue('')
       setSearchQuery('')
       setPreview([])
 
@@ -188,26 +199,69 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Percentage */}
+          {/* Value Type */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Değer Türü
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setValueType('percentage')}
+                className={cn(
+                  'flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all',
+                  valueType === 'percentage'
+                    ? 'border-[#D4A853] bg-[#D4A853]/10 text-[#8B4513]'
+                    : 'border-gray-200 hover:border-gray-300'
+                )}
+              >
+                <Percent className="w-5 h-5" />
+                <span className="font-medium">Yüzde (%)</span>
+              </button>
+              <button
+                onClick={() => setValueType('fixed')}
+                className={cn(
+                  'flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all',
+                  valueType === 'fixed'
+                    ? 'border-[#D4A853] bg-[#D4A853]/10 text-[#8B4513]'
+                    : 'border-gray-200 hover:border-gray-300'
+                )}
+              >
+                <Banknote className="w-5 h-5" />
+                <span className="font-medium">Sabit (₺)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Value Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Oran (%)
+              {valueType === 'percentage' ? 'Oran (%)' : 'Tutar (₺)'}
             </label>
             <div className="relative">
               <input
                 type="number"
                 min="0"
-                max="100"
-                step="0.1"
-                value={percentage}
-                onChange={(e) => setPercentage(e.target.value)}
+                max={valueType === 'percentage' ? '100' : undefined}
+                step={valueType === 'percentage' ? '0.1' : '0.01'}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
                 className="input pr-12"
-                placeholder="10"
+                placeholder={valueType === 'percentage' ? '10' : '5.00'}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Percent className="w-5 h-5" />
+                {valueType === 'percentage' ? (
+                  <Percent className="w-5 h-5" />
+                ) : (
+                  <span className="text-sm font-medium">₺</span>
+                )}
               </div>
             </div>
+            <p className="text-xs text-gray-400 mt-1.5">
+              {valueType === 'percentage'
+                ? `Tüm seçili ürünlere %${value || '0'} ${updateType === 'increase' ? 'zam' : 'indirim'} uygulanacak`
+                : `Tüm seçili ürünlere ${value || '0'} ₺ ${updateType === 'increase' ? 'eklenecek' : 'düşülecek'}`
+              }
+            </p>
           </div>
 
           {/* Mode Selection */}
@@ -340,34 +394,45 @@ export default function PricingPage() {
           {preview.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <Percent className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Önizleme için oran ve kapsam seçin</p>
+              <p>Önizleme için değer ve kapsam seçin</p>
             </div>
           ) : (
             <div className="max-h-[500px] overflow-y-auto space-y-2">
-              {preview.map(({ product, newPrice }) => (
-                <div
-                  key={product.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-gray-900 truncate">
-                      {product.name}
+              {preview.map(({ product, newPrice }) => {
+                const diff = newPrice - product.price
+                return (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 truncate">
+                        {product.name}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <span className="text-gray-400 line-through text-sm">
+                        {formatPrice(product.price)}
+                      </span>
+                      <span className="text-gray-400">→</span>
+                      <div className="text-right">
+                        <span className={cn(
+                          'font-semibold block',
+                          updateType === 'increase' ? 'text-green-600' : 'text-red-600'
+                        )}>
+                          {formatPrice(newPrice)}
+                        </span>
+                        <span className={cn(
+                          'text-xs',
+                          updateType === 'increase' ? 'text-green-500' : 'text-red-500'
+                        )}>
+                          {updateType === 'increase' ? '+' : ''}{formatPrice(diff)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <span className="text-gray-400 line-through text-sm">
-                      {formatPrice(product.price)}
-                    </span>
-                    <span className="text-gray-400">→</span>
-                    <span className={cn(
-                      'font-semibold',
-                      updateType === 'increase' ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {formatPrice(newPrice)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
