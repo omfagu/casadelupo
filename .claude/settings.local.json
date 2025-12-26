@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: QR Menü sistemi oluşturuldu\n\n- Next.js 14 \\(App Router\\) + Tailwind CSS + Supabase kurulumu\n- Admin paneli: kullanıcı adı/şifre ile giriş \\(e-posta gerektirmez\\)\n- Ürün yönetimi: ekleme, düzenleme, silme, aktif/pasif toggle\n- Kategori yönetimi: CRUD işlemleri\n- Görsel yükleme: Supabase Storage entegrasyonu\n- Müşteri menü sayfası: sticky kategori tabs, responsive tasarım\n- Auth middleware: dashboard koruması\n- Supabase şeması ve kurulum rehberi\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
