@@ -37,6 +37,13 @@ export default function MenuFooter() {
               Fine Dining Experience
             </p>
           </div>
+
+          {/* Copyright */}
+          <div className="mt-8 pt-4 border-t border-[#D4A853]/10">
+            <p className="text-white/40 text-xs">
+              © 2025 Ömer Gürbüz
+            </p>
+          </div>
         </div>
       </div>
     </footer>
