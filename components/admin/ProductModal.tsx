@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Upload, Loader2, ImageIcon } from 'lucide-react'
+import { X, Upload, Loader2 } from 'lucide-react'
 import type { Category, Product, ProductInsert, ProductUpdate } from '@/types/database'
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
 
 interface ProductModalProps {
   isOpen: boolean
@@ -30,6 +31,7 @@ export default function ProductModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isEditing = !!product
@@ -52,15 +54,47 @@ export default function ProductModal({
     setError('')
   }, [product, categories, isOpen])
 
+  const processFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Sadece görsel dosyaları yükleyebilirsiniz')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Dosya boyutu 5MB\'dan küçük olmalıdır')
+      return
+    }
+    setError('')
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Dosya boyutu 5MB\'dan küçük olmalıdır')
-        return
-      }
-      setImageFile(file)
-      setImagePreview(URL.createObjectURL(file))
+      processFile(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      processFile(file)
     }
   }
 
@@ -112,7 +146,7 @@ export default function ProductModal({
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">
             {isEditing ? 'Ürünü Düzenle' : 'Yeni Ürün Ekle'}
@@ -126,14 +160,24 @@ export default function ProductModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Image Upload */}
+          {/* Image Upload with Drag & Drop */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Görsel
             </label>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="relative aspect-video bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-400 cursor-pointer transition-colors overflow-hidden"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={cn(
+                'relative aspect-video rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 overflow-hidden',
+                isDragging
+                  ? 'border-[#D4A853] bg-[#D4A853]/10 scale-[1.02]'
+                  : imagePreview
+                    ? 'border-gray-200 hover:border-[#D4A853]'
+                    : 'border-gray-300 hover:border-[#D4A853] bg-gray-50'
+              )}
             >
               {imagePreview ? (
                 <Image
@@ -144,8 +188,26 @@ export default function ProductModal({
                 />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                  <Upload className="w-8 h-8 mb-2" />
-                  <span className="text-sm">Görsel yüklemek için tıklayın</span>
+                  <div className={cn(
+                    'w-16 h-16 rounded-full flex items-center justify-center mb-3 transition-all',
+                    isDragging ? 'bg-[#D4A853]/20 text-[#D4A853]' : 'bg-gray-100'
+                  )}>
+                    <Upload className={cn('w-7 h-7', isDragging && 'animate-bounce')} />
+                  </div>
+                  <span className="text-sm font-medium">
+                    {isDragging ? 'Bırakın!' : 'Sürükleyin veya tıklayın'}
+                  </span>
+                  <span className="text-xs text-gray-400 mt-1">PNG, JPG (max 5MB)</span>
+                </div>
+              )}
+
+              {/* Drag overlay */}
+              {isDragging && imagePreview && (
+                <div className="absolute inset-0 bg-[#D4A853]/80 flex items-center justify-center">
+                  <div className="text-white text-center">
+                    <Upload className="w-10 h-10 mx-auto mb-2 animate-bounce" />
+                    <span className="font-medium">Değiştirmek için bırakın</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -230,7 +292,7 @@ export default function ProductModal({
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+            <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">
               {error}
             </div>
           )}

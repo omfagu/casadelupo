@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, Loader2, Trash2, ImageIcon, CheckCircle } from 'lucide-react'
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
 
 export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -29,9 +31,11 @@ export default function SettingsPage() {
     setInitialLoading(false)
   }
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const processFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Sadece görsel dosyaları yükleyebilirsiniz' })
+      return
+    }
 
     if (file.size > 2 * 1024 * 1024) {
       setMessage({ type: 'error', text: 'Logo 2MB\'dan küçük olmalıdır' })
@@ -45,7 +49,6 @@ export default function SettingsPage() {
     const fileExt = file.name.split('.').pop()
     const fileName = `logo-${Date.now()}.${fileExt}`
 
-    // Upload file
     const { error: uploadError } = await supabase.storage
       .from('product-images')
       .upload(fileName, file)
@@ -56,14 +59,12 @@ export default function SettingsPage() {
       return
     }
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from('product-images')
       .getPublicUrl(fileName)
 
     const newLogoUrl = urlData.publicUrl
 
-    // Save to settings
     const { error: settingsError } = await supabase
       .from('settings')
       .upsert({ id: 1, logo_url: newLogoUrl })
@@ -76,6 +77,36 @@ export default function SettingsPage() {
     }
 
     setLoading(false)
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      await processFile(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      await processFile(file)
+    }
   }
 
   const handleRemoveLogo = async () => {
@@ -129,20 +160,60 @@ export default function SettingsPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-6 items-start">
-          {/* Logo Preview */}
-          <div className="w-40 h-40 rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-            {logoUrl ? (
-              <Image
-                src={logoUrl}
-                alt="Logo"
-                width={160}
-                height={160}
-                className="w-full h-full object-contain"
-              />
-            ) : (
+          {/* Logo Preview with Drag & Drop */}
+          <div
+            onClick={() => !loading && fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={cn(
+              'w-48 h-48 rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden cursor-pointer transition-all duration-200',
+              isDragging
+                ? 'border-[#D4A853] bg-[#D4A853]/10 scale-105'
+                : logoUrl
+                  ? 'border-gray-200 hover:border-[#D4A853]'
+                  : 'border-gray-300 bg-gray-50 hover:border-[#D4A853]',
+              loading && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {loading ? (
               <div className="text-center text-gray-400">
-                <ImageIcon className="w-12 h-12 mx-auto mb-2" />
-                <span className="text-xs">Logo yok</span>
+                <Loader2 className="w-10 h-10 mx-auto mb-2 animate-spin" />
+                <span className="text-sm">Yükleniyor...</span>
+              </div>
+            ) : logoUrl ? (
+              <div className="relative w-full h-full">
+                <Image
+                  src={logoUrl}
+                  alt="Logo"
+                  fill
+                  className="object-contain p-2"
+                />
+                {isDragging && (
+                  <div className="absolute inset-0 bg-[#D4A853]/80 flex items-center justify-center">
+                    <div className="text-white text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 animate-bounce" />
+                      <span className="font-medium text-sm">Değiştir</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 p-4">
+                <div className={cn(
+                  'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 transition-all',
+                  isDragging ? 'bg-[#D4A853]/20 text-[#D4A853]' : 'bg-gray-100'
+                )}>
+                  {isDragging ? (
+                    <Upload className="w-7 h-7 animate-bounce" />
+                  ) : (
+                    <ImageIcon className="w-7 h-7" />
+                  )}
+                </div>
+                <span className="text-sm font-medium block">
+                  {isDragging ? 'Bırakın!' : 'Sürükleyin veya tıklayın'}
+                </span>
+                <span className="text-xs text-gray-400 mt-1 block">PNG, JPG, SVG</span>
               </div>
             )}
           </div>
