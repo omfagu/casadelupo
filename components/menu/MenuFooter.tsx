@@ -41,7 +41,7 @@ export default function MenuFooter() {
           {/* Copyright */}
           <div className="mt-8 pt-4 border-t border-[#D4A853]/10">
             <p className="text-white/40 text-xs">
-              © 2025 Ömer Gürbüz
+              © 2025 OFG
             </p>
           </div>
         </div>
